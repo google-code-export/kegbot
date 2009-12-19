@@ -1,0 +1,279 @@
+body {
+  font: 12px Arial, Verdana, sans-serif;
+  background: #3c729c;
+  padding: 0px;
+  margin: 0px;
+}
+
+a {
+  text-decoration:none;
+  font-weight:bold;
+  color:#600;
+}
+a:hover {
+  color:#630;
+}
+
+td {
+  margin: 0px;
+  padding: 0px 0px;
+  color: black;
+}
+
+p {
+  margin: 0px;
+  padding: 0px 0px;
+  color: black;
+}
+
+div.plaincontent {
+  width: 700px;
+  margin-left: 130px;
+  margin-top: 0px;
+  margin-bottom: 10px;
+  padding-top: 8px;
+  padding-bottom: 5px;
+}
+div.content {
+   width:700px;
+   background:#69c;
+   border: 1px solid #030;
+   margin-left: 130px;
+   margin-top: 0px;
+   margin-bottom: 10px;
+   padding-top: 8px;
+   padding-bottom: 5px;
+}
+
+div.contenthead {
+   font-size: 16px/16px;
+   font-weight: bold;
+   background: #003;
+   color: #fff;
+   border: 1px solid #030;
+   border-bottom: none;
+   margin-left: 130px;
+   margin-top:0px;
+   margin-bottom:0px;
+   width: 700px;
+}
+
+div.mainheader {
+   font-size: 16px;
+   font-weight: bold;
+   background: #003;
+   color: #fff;
+   width: 700px;
+   background:#6   font: 12px Arial, Verdana, sans-serif;
+   background: #fff;
+   padding: 0px;
+   margin: 0px;
+9c;
+   border-left: 1px solid #000;
+   border-right: 1px solid #000;
+   border-bottom: 1px solid #000;
+   margin-left: 130px;
+   margin-top: 0px;
+   margin-bottom: 0px;
+   padding-top: 8px;
+   padding-bottom: 5px;
+   border-top:0px;
+   background-image:url('images/keg-header.png');
+   background-position: -40px;
+   background-repeat:no-repeat;
+}
+
+#kb-main-header {
+  top: 0px;
+  margin: 0 auto;
+  width: 800px;
+  height: 60px;
+
+  text-align: center;
+
+  font-size: 48px;
+  color: #d2e2e3;
+
+  -webkit-border-bottom-left-raidus: 10px;
+}
+
+#kb-main-page {
+  align: center;
+  margin: 0 auto;
+  margin-top: 25px;
+  width: 800px;
+}
+
+#kb-main-tabs {
+  width: 100%;
+}
+
+#kb-tab-holder {
+  margin: 0 auto;
+}
+
+.kb-section-tab {
+  width: 100px;
+  margin-left: 10px;
+  margin-right: 10px;
+  text-align: center;
+  background: #d2e2e3;
+  border: 1px solid #3d3c59;
+  border-bottom: 0px;
+  font-weight: bold;
+  font-size: 1.2em;
+  float: left;
+  padding: 6px;
+
+  -webkit-border-top-left-radius: 3px;
+  -webkit-border-top-right-radius: 3px;
+}
+
+#kb-main-content {
+  border: 1px solid #3d3c59;
+  background: #fff;
+  min-height: 300px;
+  padding: 10px;
+}
+
+div.linkbar {
+   border: 1px dotted #000;
+   background:#69c;
+   min-width: 60px;
+   width:100%;
+   font: 12px/12px Courier, sans-serif;
+   font-weight: bold;
+   border-left:0px;
+   border-right:0px;
+   filter:alpha(opacity=60);-moz-opacity:0.6;
+   opacity: 0.6;
+}
+
+div.rightbox {
+   width: 100px;
+   margin-bottom: 10px;
+   margin-left: 650px;
+   background-color: #aaa;
+}
+
+div.leadercol {
+   position: absolute;
+   width: 100px;
+   background-color: #aaa;
+}
+
+div.leftnav {
+   background-image:url('images/keg-header.png'); 
+   background-repeat:no-repeat;
+   width: 100px;
+   min-height: 200px;
+   border-right: 1px solid #000;
+   border-bottom: 1px solid #000;
+   color: #000;
+   padding-top:5px;
+   text-align: right;
+   width:110px;
+   float: right;
+   position: absolute;
+   margin-left:0px;
+   background-color: #888888;
+}
+
+h1 {
+   font-size:14px;
+   padding-top:10px;
+}
+
+div.minibox {
+   border: 1px solid #333;
+   padding: 5px;
+   background: #ccd;
+}
+
+div.plainboxhead {
+   border: 1px solid #333;
+   border-bottom: 0px;
+   padding: 5px;
+   background: #369;
+}
+div.plainbox {
+   border: 1px solid #333;
+   padding: 5px;
+   background: #ccd;
+}
+div.boxhead {
+   width: 630px;
+   border: 1px solid #333;
+   border-bottom: 0px;
+   padding: 5px;
+   margin-left: 30px;
+   background: #369;
+   -moz-border-radius: 5px;
+}
+
+div.box {
+   width: 630px;
+   border: 1px solid #333;
+   padding: 5px;
+   margin-left: 30px;
+   background: #ccd;
+   -moz-border-radius: 5px;
+}
+
+div.sep {
+   width: 400px;
+   border-top: 1px dotted #333;
+   clear: both;
+}
+div.row {
+  clear: both;
+  padding-top: 0px;
+  padding-left: 20px;
+}
+.bgmain {
+   background: #ccd;
+}
+
+div.spacer {
+  clear: both;
+}
+div.row span.label {
+  clear: all;
+  float: left;
+  border: 0px dotted black;
+  width: 110px;
+  text-align: right;
+  font-weight: bold;
+  padding: 5px;
+  margin: 0px;
+}
+div.row span.data {
+  border: 0px dotted black;
+  width: 230px;
+  float: left;
+  padding: 5px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+body>#leftnav {width:100px;}
+
+div.nav {
+   border: 1px dotted #999;
+   background: #eee;
+   min-width: 60px;
+   width:100%;
+   font: 10px/10px Courier, sans-serif;
+   border-left:0px;
+   border-right:0px;
+}
+
+.statementtotal_positive {
+  background: #0f0;
+}
+
+.statementtotal_negative {
+  background: #f00;
+  width:100%;
+  text-align: right;
+}
