@@ -1,0 +1,13 @@
+syntax: glob
+
+### global stuff
+*.pyc
+
+### docs
+docs/build
+
+### pykeg
+pykeg/kegbot.log
+
+### controller
+controller/kegboard/build-cli
