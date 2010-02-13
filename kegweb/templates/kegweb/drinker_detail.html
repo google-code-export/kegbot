@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load kegweblib %}
+
+{% block title %}drinker details for {{ drinker.username }}{% endblock %}
+
+{% block content %}
+
+{% user_stats drinker as stats %}
+
+<div class="contenthead">
+   drinker info
+</div>
+<div class="content">
+   <table width="100%" cellspacing=3 cellpadding=1 border=0>
+      <tr>
+         <td rowspan="8" align="center" valign="top" width=140>
+            <div>
+            {% mugshot_box drinker 128 %}
+            </div>
+            <font size=+1>{{ drinker.username }}</font>
+         </td>
+         <td valign="top">
+
+            <div class="plainboxhead" style="width:280px;">
+               <b>drinker stats</b>
+            </div>
+            <div class="plainbox" style="width:280px;">
+               <table border=0>
+                  {% if stats.HasHadADrink %}
+                  <tr>
+                     <td align="right" valign="top"><b>first drink:&nbsp;</b></td>
+                     <td colspan="1" align="left">
+                       {{ stats.EarliestDrink.starttime|lower }}
+                       ({{ stats.EarliestDrink.starttime|timesince|lower }} ago)
+                     </td>
+                  </tr>
+                  <tr>
+                     <td align="right" valign="top"><b>last drink:&nbsp;</b></td>
+                     <td colspan="1" align="left">
+                       {{ stats.LatestDrink.starttime|lower }}
+                       ({{ stats.LatestDrink.starttime|timesince|lower }} ago)
+                     </td>
+                  </tr>
+                  <tr>
+                     <td align="right" valign="top"><b>total drinks:&nbsp;</b></td>
+                     <td colspan="1" align="left">{{ stats.AllDrinks.count }}</td>
+                  </tr>
+                  {% else %}
+                  {% endif %}
+               </table>
+            </div>
+
+            <div class="plainboxhead" style="width:280px;">
+               <b>all drinks: quick shot</b>
+            </div>
+            <div class="plainbox" style="width:280px;">
+               <table border=0>
+                  <tr>
+                     <td align="right" valign="top"><b>career:&nbsp;</b></td>
+                     <td colspan="1" align="left">
+                      {{ stats.TotalVolume.ConvertTo.Ounce|floatformat:2}} oz<br>
+                      = {{ stats.TotalVolume.ConvertTo.Pint|floatformat:2}} pints<br>
+                      = {{ stats.TotalVolume.ConvertTo.HalfBarrelKeg|floatformat:2}} kegs<br>
+                     </td>
+                  </tr>
+               </table>
+            </div>
+
+         </td>
+      </tr>
+   </table>
+</div>
+
+<div class="contenthead">
+   full drink history
+</div>
+<div class="content">
+   <p>
+      full drink history for {{ drinker.username }} is shown below.
+   </p>
+   <p>
+   <div class="box">
+   <table class="sortable" id="recent_drinks" cellspacing=0 border=0 width="430">
+   <tr>
+      <td>&nbsp;</td>
+      <td align="left"><b>size</b></td>
+      <td align="right"><b>calories</b></td>
+      <td><b>user</b></td>
+      <td><b>when</b></td>
+      <td><b>bac</b></td>
+   </tr>
+   {% for drink in stats.AllDrinks %}
+      {% ifchanged drink.GetGroup %} <tr><td colspan=6>&nbsp;</td></tr> {% endifchanged %}
+      {% drink_span drink %}
+   {% endfor %}
+   </table>
+   </div>
+   </p>
+</div>
+
+{% endblock %}

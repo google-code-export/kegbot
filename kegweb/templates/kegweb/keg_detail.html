@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load kegweblib %}
+
+{% block title %}keg index{% endblock %}
+
+{% block content %}
+
+{% keg_stats keg as stats %}
+
+<div class="contenthead">
+   keg snapshot
+</div>
+<div class="content">
+   {% if stats.PreviousKeg %}
+   <div style="float:left">
+      <a href="{% url kegweb.kegweb.views.keg_detail stats.PreviousKeg.id %}">&laquo; prev keg</a>
+   </div>
+   {% endif %}
+
+   {% if stats.NextKeg %}
+   <div style="float:right">
+      <a href="{% url kegweb.kegweb.views.keg_detail stats.NextKeg.id %}">next keg &raquo;</a>
+   </div>
+   {% endif %}
+
+   <br clear="all">
+
+  <p>
+  {{ keg.type }}
+  </p>
+  <p>
+  total poured: <b> {{ stats.VolumePoured.ConvertTo.USGallon|floatformat:2 }} gallons</b>
+  ({{ stats.PercentFull|floatformat:2 }}% full)
+  </p>
+  {% ifequal keg.status "online" %}
+  <p>
+  remaining: <b> {{ stats.VolumeRemaining.ConvertTo.USGallon|floatformat:2 }} gallons</b>
+  </p>
+  {% endifequal %}
+  <p>
+  {% ifequal keg.status "online" %}
+  this keg is <b>online</b>, and is {{ keg.keg_age.days }}
+  day{{keg.keg_age.days|pluralize}} old.
+  {% else %}
+  this keg is <b>offline</b>; it lasted {{ keg.keg_age.days }}
+  day{{keg.keg_age.days|pluralize}}.
+  {% endifequal %}
+  </p>
+  {% if stats.ChartUsersByVolume %}
+  <img src="{{ stats.ChartUsersByVolume }}&chf=bg,s,6699cc">
+  {% endif %}
+  <!--
+  <p>
+  cost by user:<br>
+  {% for pair in stats.AllUsersByCost %}
+  &nbsp;&nbsp;{{pair.1.username}} - ${{pair.0|floatformat:2}}<br>
+  {% endfor %}
+  </p>
+  -->
+</div>
+
+
+<div class="contenthead">
+   full drink history
+</div>
+<div class="content">
+   <p>
+      full drink history for keg {{ keg.id }} is shown below.
+   </p>
+
+   <p>
+   <div class="box">
+   <table class="sortable" id="recent_drinks" cellspacing=0 border=0 width="430">
+   <tr>
+      <td>&nbsp;</td>
+      <td align="left"><b>size</b></td>
+      <td align="right"><b>calories</b></td>
+      <td><b>user</b></td>
+      <td><b>when</b></td>
+      <td><b>bac</b></td>
+   </tr>
+   {% for drink in stats.AllDrinks %}
+      {% ifchanged drink.GetGroup %} <tr><td colspan=6>&nbsp;</td></tr> {% endifchanged %}
+      {% drink_span drink %}
+   {% endfor %}
+   </table>
+   </div>
+   </p>
+</div>
+
+
+{% endblock %}

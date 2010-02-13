@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load kegweblib %}
+
+{% block title %}keg index{% endblock %}
+
+{% block content %}
+
+<div class="contenthead">
+   all kegs
+</div>
+<div class="content">
+  <div class="box">
+  <table class="sortable" cellspacing=0 border=0 width="430">
+  {% for keg in keg_list %}
+  <tr>
+    <td><a href="{% url kegweb.kegweb.views.keg_detail keg.id %}">keg {{keg.id}}&nbsp;</a></td>
+    <td>{{keg.type.name|lower}}&nbsp;</td>
+    <td>{{keg.full_volume.ConvertTo.USGallon|floatformat:1}} gal&nbsp;</td>
+    <td>{{keg.startdate|timesince|lower}} ago</td>
+  </tr>
+  {% endfor %}
+  </table>
+  </div>
+</div>
+
+{% endblock %}

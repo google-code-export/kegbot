@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load kegweblib %}
+
+{% block title %}your account: {{user.username}}{% endblock %}
+
+{% block content %}
+<div class="contenthead">
+  hello, {{user.username}}
+</div>
+<div class="content">
+  <p>
+    you are logged in.
+  </p>
+</div>
+
+<div class="contenthead">
+   profile
+</div>
+<div class="content">
+  <p>
+  <form action="/account/update_profile/" method="POST">
+  {{profile_form.as_p}}
+  <input type="submit" name="submit" value="submit">
+  </form>
+  </p>
+
+  <p>
+  <form enctype="multipart/form-data" method="post" action="/account/update_mugshots/">
+    your current mugshot:
+    {% mugshot_box user %}
+    {{mugshot_form.as_p}}
+  <input type="submit" name="submit" value="submit">
+  </form>
+  </p>
+
+</div>
+
+{% endblock %}
