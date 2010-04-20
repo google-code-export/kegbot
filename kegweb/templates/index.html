@@ -1,0 +1,33 @@
+{% extends "page-twocol.html" %}
+{% load kegweblib %}
+
+{% block title %}main page{% endblock %}
+
+{% block col-1 %}
+<div class="kb-contentbox-head">
+  on tap
+</div>
+<div class="kb-contentbox">
+  {% for tap in taps %}
+    {% if tap.current_keg %}
+      {% with tap.current_keg as keg %}
+        {% include "kegweb/keg-snapshot.html" %}
+      {% endwith %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock col-1 %}
+
+{% block col-2 %}
+<div class="kb-contentbox-head">
+  recent pours
+</div>
+<div class="kb-contentbox">
+  <div id="kb-recent-pours">
+  {% latest_drinks 5 as drinks %}
+  {% for drink in drinks %}
+    {% include "kegweb/drink-box.html" %}
+  {% endfor %}
+  </div>
+</div>
+{% endblock col-2 %}
