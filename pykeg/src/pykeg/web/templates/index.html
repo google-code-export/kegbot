@@ -1,0 +1,90 @@
+{% extends "page-twocol.html" %}
+{% load kegweblib %}
+
+{% block title %}main page{% endblock %}
+
+{% block col-1 %}
+<div class="kb-contentbox-head">
+  on tap
+</div>
+<div class="kb-contentbox">
+  {% for tap in taps %}
+    {% if tap.current_keg %}
+      {% with tap.current_keg as keg %}
+        {% include "kegweb/keg-snapshot.html" %}
+      {% endwith %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock col-1 %}
+
+{% block col-2 %}
+<div class="kb-contentbox-head">
+  recent pours
+</div>
+<div class="kb-contentbox">
+  <div id="kb-recent-pours">
+  {% latest_drinks 5 as drinks %}
+  {% for drink in drinks %}
+    {% include "kegweb/drink-box.html" %}
+  {% endfor %}
+  </div>
+</div>
+
+<script>
+  {% if drinks %}
+  var LAST_DRINK_ID = {{ drinks.0.id }};
+  {% else %}
+  var LAST_DRINK_ID = 0;
+  {% endif %}
+  var ALL_DRINKS = Array();
+  function addDrinkHtml(row, animate, append) {
+    if (row['id'] <= LAST_DRINK_ID) {
+      return;
+    }
+    LAST_DRINK_ID = row['id'];
+
+    if (ALL_DRINKS.indexOf(row['id']) >= 0) {
+      return;
+    }
+    ALL_DRINKS.push(row['id']);
+
+    var newDivName = 'kb-drink-' + row['id'];
+    var newdiv = '<div id="' + newDivName + '">';
+    newdiv += row['box_html'];
+    newdiv += '</div>';
+    if (append) {
+      $('#kb-recent-pours').append(newdiv);
+    } else {
+      $('#kb-recent-pours').prepend(newdiv);
+    }
+    if (animate) {
+      $('#' + newDivName).hide().css("background-color", "#ffc800")
+          .fadeIn('fast').animate({ backgroundColor: "#ffffff" }, 1500);
+    }
+    $("#kb-recent-pours").find("abbr.timeago").timeago();
+  }
+
+  function queryLastDrink() {
+    $.getJSON('/api/last-drink-id/', function(data) {
+      if (data['id'] > LAST_DRINK_ID) {
+        loadNewDrinks();
+      }
+    });
+  }
+
+  function loadNewDrinks() {
+    $.getJSON('/api/last-drinks-html/', function(data) {
+      for (var idx in data) {
+        addDrinkHtml(data[idx], true, false);
+      }
+    });
+  }
+
+  $(document).ready(function() {
+    // TODO(mikey): more intelligent timeout/backoff; idle sensitivity.
+    setInterval(queryLastDrink, 10000);
+  });
+</script>
+
+{% endblock col-2 %}
