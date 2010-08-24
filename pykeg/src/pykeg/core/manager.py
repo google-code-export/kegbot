@@ -478,18 +478,19 @@ class ThermoManager(Manager):
   @EventHandler(kegnet_pb2.ThermoEvent)
   def _HandleThermoUpdateEvent(self, event):
     now = time.time()
-    now = now - (now % (kb_common.THERMO_RECORD_DELTA_SECONDS))
-    now = datetime.datetime.fromtimestamp(now)
+    now = int(now - (now % (kb_common.THERMO_RECORD_DELTA_SECONDS)))
+    now_dt = datetime.datetime.fromtimestamp(now)
     sensor_name = event.sensor_name
     sensor_value = event.sensor_value
 
     last_record = self._name_to_last_record.get(sensor_name)
-    if last_record and last_record.time == now:
+    if last_record and last_record.record_time == now:
       return
 
     self._logger.info('Recording temperature sensor=%s value=%s' %
                       (sensor_name, sensor_value))
-    new_record = self._backend.LogSensorReading(sensor_name, sensor_value, now)
+    new_record = self._backend.LogSensorReading(sensor_name, sensor_value,
+        now_dt)
     self._name_to_last_record[sensor_name] = new_record
 
 class TokenRecord:
@@ -594,10 +595,9 @@ class TokenManager(Manager):
 
   def _PublishAuthEvent(self, record, added):
     user = None
-    if added:
-      token = self._backend.GetAuthToken(record.auth_device, record.token_value)
-      if token:
-        user = token.user
+    token = self._backend.GetAuthToken(record.auth_device, record.token_value)
+    if token:
+      user = token.user
 
     if not user:
       self._logger.info('Token not assigned: %s' % record)
@@ -616,6 +616,7 @@ class TokenManager(Manager):
 
   def _TokenRemoved(self, event):
     record = self._GetRecordFromEvent(event)
+    self._logger.info('Token removed: %s' % record)
 
     if self._tokens.get(record.tap_name) != record:
       return
@@ -642,13 +643,13 @@ class TokenManager(Manager):
     """Processes a TokenAuthEvent when a token is added."""
     existing = self._ActiveRecordForTap(event.tap_name)
     record = self._GetRecordFromEvent(event)
+    self._logger.info('Token attached: %s' % record)
 
     if existing == record:
       # Token is already known; nothing to do except update it.
       record.UpdateLastSeen()
       return
 
-    self._logger.info('Token attached: %s' % record)
     if existing:
       self._logger.info('Detaching previous token: %s' % existing)
       self._RemoveRecord(existing)
