@@ -151,6 +151,9 @@ class Keg(models.Model):
   def remaining_volume(self):
     return self.full_volume() - self.served_volume()
 
+  def percent_full(self):
+    return float(self.remaining_volume()) / float(self.full_volume()) * 100
+
   def keg_age(self):
     if self.status == 'online':
       end = datetime.datetime.now()
@@ -177,6 +180,30 @@ class Keg(models.Model):
       self._stats = {}
     return self._stats
 
+  def Sessions(self):
+    chunks = SessionChunk.objects.filter(keg=self)
+    res = list(set(c.session for c in chunks))
+    res.sort()
+    return res
+
+  def TopDrinkers(self):
+    stats = self.GetStats()
+    if not stats:
+      return []
+    ret = []
+    volmap = stats.get('volume_by_drinker', {})
+    for username, vol in volmap.iteritems():
+      username = str(username)
+      vol = float(vol)
+      try:
+        user = User.objects.get(username=username)
+      except User.DoesNotExist:
+        continue  # should not happen
+      volume = units.Quantity(vol)
+      ret.append((volume, user))
+    ret.sort(reverse=True)
+    return ret
+
   def __str__(self):
     return "Keg #%s - %s" % (self.id, self.type)
 
@@ -194,30 +221,39 @@ class Keg(models.Model):
   notes = models.TextField(blank=True, null=True,
       help_text='Private notes about this keg, viewable only by admins.')
 
-def _KegPostSave(sender, instance, **kwargs):
+def _KegPreSave(sender, instance, **kwargs):
   keg = instance
-  if keg.status == 'offline':
-    last_drink_qs = keg.drink_set.all().order_by('-starttime')
-    if len(last_drink_qs):
-      last_drink = last_drink_qs[0]
-      if keg.enddate != last_drink.endtime:
-        keg.enddate = last_drink.endtime
-        keg.save()
 
-post_save.connect(_KegPostSave, sender=Keg)
+  # We don't need to do anything if the keg is still online.
+  if keg.status != 'offline':
+    return
+
+  # Determine first drink date & set keg start date to it if earlier.
+  drinks = instance.drinks.all().order_by('endtime')
+  if drinks:
+    drink = drinks[0]
+    if drink.endtime < instance.startdate:
+      instance.startdate = drink.endtime
+
+  # Determine last drink date & set keg end date to it if later.
+  drinks = instance.drinks.all().order_by('-endtime')
+  if drinks:
+    drink = drinks[0]
+    if drink.endtime > instance.enddate:
+      instance.enddate = drink.endtime
+
+pre_save.connect(_KegPreSave, sender=Keg)
 
 
 class DrinkManager(models.Manager):
-  def get_valid(self):
-    return self.filter(status='valid', volume_ml__gt=0)
-
+  def valid(self):
+    return self.filter(status='valid')
 
 class Drink(models.Model):
   """ Table of drinks records """
-  objects = DrinkManager()
   class Meta:
-    get_latest_by = "endtime"
-    ordering = ("-endtime",)
+    get_latest_by = 'endtime'
+    ordering = ('-endtime',)
 
   def Volume(self):
     return units.Quantity(self.volume_ml, units.RECORD_UNIT)
@@ -247,13 +283,16 @@ class Drink(models.Model):
   def __str__(self):
     return "Drink %s by %s" % (self.id, self.user)
 
+  objects = DrinkManager()
+
   site = models.ForeignKey(KegbotSite)
-  # Ticks and volume may seem redundant; volume is stored in "volunits" which
-  # happen to be the exact volume of one tick. The idea here is to always
-  # store the meter reading, in case the value of a volunit changes, and to
-  # allow calibration. Kegbot code never touches the ticks field after saving
-  # it; all operations concerning volume use the volume field.
+
+  # Ticks records the actual meter reading, which is never changed once
+  # recorded.
   ticks = models.PositiveIntegerField()
+
+  # Volume is the actual volume of the drink.  Its initial value is a function
+  # of `ticks`, but it may be adjusted, eg due to calibration or mis-recording.
   volume_ml = models.FloatField()
 
   # Similarly, recording both the start and end times of a drink may seem odd.
@@ -265,42 +304,30 @@ class Drink(models.Model):
   # used.  TODO(mikey): make sure this is actually the case
   starttime = models.DateTimeField()
   endtime = models.DateTimeField()
-  user = models.ForeignKey(User, null=True, blank=True)
-  keg = models.ForeignKey(Keg, null=True, blank=True)
+  user = models.ForeignKey(User, null=True, blank=True, related_name='drinks')
+  keg = models.ForeignKey(Keg, null=True, blank=True, related_name='drinks')
   status = models.CharField(max_length=128, choices = (
      ('valid', 'valid'),
      ('invalid', 'invalid'),
      ), default = 'valid')
   session = models.ForeignKey('DrinkingSession',
       related_name='drinks', null=True, blank=True, editable=False)
+  auth_token = models.CharField(max_length=256, blank=True, null=True)
+  duration = models.PositiveIntegerField(blank=True, null=True)
 
-def _DrinkPreSave(sender, instance, **kwargs):
-  if not instance.session:
-    DrinkingSession.SessionForDrink(instance)
-pre_save.connect(_DrinkPreSave, sender=Drink)
+  def _UpdateUserStats(self):
+    if self.user:
+      stats, created = self.user.stats.get_or_create()
+      stats.Update(self)
 
-def _DrinkPostSave(sender, instance, **kwargs):
-  BAC.ProcessDrink(instance)
+  def _UpdateKegStats(self):
+    if self.keg:
+      stats, created = self.keg.stats.get_or_create()
+      stats.Update(self)
 
-  keg = instance.keg
-  if keg:
-    if keg.startdate > instance.starttime:
-      keg.startdate = instance.starttime
-      keg.save()
-
-  user = instance.user
-  if user:
-    if user.date_joined > instance.starttime:
-      user.date_joined = instance.starttime
-      user.save()
-    user_stats, created = UserStats.objects.get_or_create(user=user)
-    user_stats.UpdateStats(instance)
-
-  if instance.keg:
-    keg_stats, created = KegStats.objects.get_or_create(keg=keg)
-    keg_stats.UpdateStats(instance)
-post_save.connect(_DrinkPostSave, sender=Drink)
-
+  def PostProcess(self):
+    self._UpdateUserStats()
+    self._UpdateKegStats()
 
 class AuthenticationToken(models.Model):
   """A secret token to authenticate a user, optionally pin-protected."""
@@ -420,15 +447,22 @@ def find_object_in_window(qset, start, end, window):
   return None
 
 
-class DrinkingSession(models.Model):
-  """A collection of contiguous drinks. """
-  site = models.ForeignKey(KegbotSite)
+class SessionManager(models.Manager):
+  def valid(self):
+    return self.filter(volume_ml__gt=kb_common.MIN_SESSION_VOLUME_DISPLAY_ML)
+
+class AbstractChunk(models.Model):
+  class Meta:
+    abstract = True
+    get_latest_by = 'starttime'
+    ordering = ('-starttime',)
+
   starttime = models.DateTimeField()
   endtime = models.DateTimeField()
-  volume = models.FloatField(default=0)
+  volume_ml = models.FloatField(default=0)
 
   def Volume(self):
-    return units.Quantity(self.volume, units.RECORD_UNIT)
+    return units.Quantity(self.volume_ml, units.RECORD_UNIT)
 
   def Duration(self):
     return self.endtime - self.startime
@@ -438,26 +472,52 @@ class DrinkingSession(models.Model):
       self.starttime = drink.starttime
     if self.endtime < drink.endtime:
       self.endtime = drink.endtime
-    drink.session = self
-    self.volume += drink.volume_ml
+    self.volume_ml += drink.volume_ml
     self.save()
-    self._UpdateUserPart(drink)
 
-  def _UpdateUserPart(self, drink):
-    if not drink.user:
-      return
+
+class DrinkingSession(AbstractChunk):
+  """A collection of contiguous drinks. """
+  class Meta:
+    get_latest_by = 'starttime'
+    ordering = ('-starttime',)
+
+  objects = SessionManager()
+
+  def __str__(self):
+    return "Session #%s: %s" % (self.id, self.starttime)
+
+  def Volume(self):
+    return units.Quantity(self.volume_ml, units.RECORD_UNIT)
+
+  def Duration(self):
+    return self.endtime - self.startime
+
+  def AddDrink(self, drink):
+    super(DrinkingSession, self).AddDrink(drink)
     defaults = {'starttime': drink.starttime, 'endtime': drink.endtime}
-    user_part, created = DrinkingSessionUserPart.objects.get_or_create(user=drink.user,
-        session=self, defaults=defaults)
-    if user_part.starttime > drink.starttime:
-      user_part.starttime = drink.starttime
-    if user_part.endtime < drink.endtime:
-      user_part.endtime = drink.endtime
-    user_part.volume_ml += drink.volume_ml
-    user_part.save()
+
+    # Update or create a SessionChunk.
+    chunk, created = SessionChunk.objects.get_or_create(session=self,
+        user=drink.user, keg=drink.keg, defaults=defaults)
+    chunk.AddDrink(drink)
+
+    # Update or create a UserSessionChunk.
+    chunk, created = UserSessionChunk.objects.get_or_create(session=self,
+        user=drink.user, defaults=defaults)
+    chunk.AddDrink(drink)
+
+    # Update or create a KegSessionChunk.
+    chunk, created = KegSessionChunk.objects.get_or_create(session=self,
+        keg=drink.keg, defaults=defaults)
+    chunk.AddDrink(drink)
+
+  def UserChunksByVolume(self):
+    chunks = self.user_chunks.all().order_by('-volume_ml')
+    return chunks
 
   @classmethod
-  def SessionForDrink(cls, drink):
+  def AssignSessionForDrink(cls, drink):
     # Return existing session if already assigned.
     if drink.session:
       return drink.session
@@ -468,27 +528,56 @@ class DrinkingSession(models.Model):
     session = find_object_in_window(q, drink.starttime, drink.endtime, window)
     if session:
       session.AddDrink(drink)
+      drink.session = session
+      drink.save()
       return session
 
     # Create a new session
     session = cls(starttime=drink.starttime, endtime=drink.endtime)
     session.save()
     session.AddDrink(drink)
+    drink.session = session
+    drink.save()
     return session
 
 
-class DrinkingSessionUserPart(models.Model):
+class SessionChunk(AbstractChunk):
+  """A specific user and keg contribution to a session."""
+  class Meta:
+    unique_together = ('session', 'user', 'keg')
+    get_latest_by = 'starttime'
+    ordering = ('-starttime',)
+
+  session = models.ForeignKey(DrinkingSession, related_name='chunks')
+  user = models.ForeignKey(User, related_name='session_chunks', blank=True,
+      null=True)
+  keg = models.ForeignKey(Keg, related_name='session_chunks', blank=True,
+      null=True)
+
+
+class UserSessionChunk(AbstractChunk):
+  """A specific user's contribution to a session (spans all kegs)."""
   class Meta:
     unique_together = ('session', 'user')
-  site = models.ForeignKey(KegbotSite)
-  session = models.ForeignKey(DrinkingSession, related_name='user_parts')
-  user = models.ForeignKey(User, related_name='session_parts')
-  starttime = models.DateTimeField()
-  endtime = models.DateTimeField()
-  volume_ml = models.FloatField(default=0)
+    get_latest_by = 'starttime'
+    ordering = ('-starttime',)
 
-  def Volume(self):
-    return units.Quantity(self.volume_ml, units.RECORD_UNIT)
+  session = models.ForeignKey(DrinkingSession, related_name='user_chunks')
+  user = models.ForeignKey(User, related_name='user_session_chunks', blank=True,
+      null=True)
+
+
+class KegSessionChunk(AbstractChunk):
+  """A specific keg's contribution to a session (spans all users)."""
+  class Meta:
+    unique_together = ('session', 'keg')
+    get_latest_by = 'starttime'
+    ordering = ('-starttime',)
+
+  session = models.ForeignKey(DrinkingSession, related_name='keg_chunks')
+  keg = models.ForeignKey(Keg, related_name='keg_session_chunks', blank=True,
+      null=True)
+
 
 class ThermoSensor(models.Model):
   site = models.ForeignKey(KegbotSite)
@@ -497,6 +586,12 @@ class ThermoSensor(models.Model):
 
   def __str__(self):
     return self.nice_name
+
+  def LastLog(self):
+    try:
+      return self.thermolog_set.latest()
+    except Thermolog.DoesNotExist:
+      return None
 
 
 class Thermolog(models.Model):
@@ -665,7 +760,7 @@ class _StatsModel(models.Model):
   stats = fields.JSONField()
   revision = models.PositiveIntegerField(default=0)
 
-  def UpdateStats(self, obj):
+  def Update(self, obj):
     builder = self.STATS_BUILDER()
     # TODO(mikey): use prev
     self.stats = builder.Build(obj)
@@ -676,6 +771,7 @@ class _StatsModel(models.Model):
 class UserStats(_StatsModel):
   STATS_BUILDER = stats.DrinkerStatsBuilder
   user = models.ForeignKey(User, unique=True, related_name='stats')
+
   def __str__(self):
     return 'UserStats for %s' % self.user
 
@@ -683,6 +779,7 @@ class UserStats(_StatsModel):
 class KegStats(_StatsModel):
   STATS_BUILDER = stats.KegStatsBuilder
   keg = models.ForeignKey(Keg, unique=True, related_name='stats')
+
   def __str__(self):
     return 'KegStats for %s' % self.keg
 

@@ -6,102 +6,50 @@ from django.db import models
 
 class Migration(SchemaMigration):
     
-    no_dry_run = True
-
     def forwards(self, orm):
         
-        # Adding model 'KegbotSite'
-        db.create_table('core_kegbotsite', (
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
+        # Adding model 'KegSessionChunk'
+        db.create_table('core_kegsessionchunk', (
+            ('keg', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='keg_session_chunks', null=True, to=orm['core.Keg'])),
+            ('volume_ml', self.gf('django.db.models.fields.FloatField')(default=0)),
+            ('session', self.gf('django.db.models.fields.related.ForeignKey')(related_name='keg_chunks', to=orm['core.DrinkingSession'])),
+            ('starttime', self.gf('django.db.models.fields.DateTimeField')()),
+            ('endtime', self.gf('django.db.models.fields.DateTimeField')()),
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
         ))
-        s, _ = orm.KegbotSite.objects.get_or_create(name='default')
-        db.send_create_signal('core', ['KegbotSite'])
+        db.send_create_signal('core', ['KegSessionChunk'])
 
-        # Adding field 'Config.site'
-        db.add_column('core_config', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
+        # Adding model 'UserSessionChunk'
+        db.create_table('core_usersessionchunk', (
+            ('volume_ml', self.gf('django.db.models.fields.FloatField')(default=0)),
+            ('session', self.gf('django.db.models.fields.related.ForeignKey')(related_name='user_chunks', to=orm['core.DrinkingSession'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='user_session_chunks', null=True, to=orm['auth.User'])),
+            ('starttime', self.gf('django.db.models.fields.DateTimeField')()),
+            ('endtime', self.gf('django.db.models.fields.DateTimeField')()),
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+        ))
+        db.send_create_signal('core', ['UserSessionChunk'])
 
-        # Adding field 'RelayLog.site'
-        db.add_column('core_relaylog', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
+        # Deleting field 'DrinkingSession.volume'
+        db.delete_column('core_drinkingsession', 'volume')
 
-        # Adding field 'AuthenticationToken.site'
-        db.add_column('core_authenticationtoken', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'KegTap.site'
-        db.add_column('core_kegtap', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'ThermoSensor.site'
-        db.add_column('core_thermosensor', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'ThermoSummaryLog.site'
-        db.add_column('core_thermosummarylog', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'DrinkingSessionUserPart.site'
-        db.add_column('core_drinkingsessionuserpart', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'Keg.site'
-        db.add_column('core_keg', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'Drink.site'
-        db.add_column('core_drink', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'KegStats.site'
-        db.add_column('core_kegstats', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'DrinkingSession.site'
-        db.add_column('core_drinkingsession', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'Thermolog.site'
-        db.add_column('core_thermolog', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
-
-        # Adding field 'UserStats.site'
-        db.add_column('core_userstats', 'site', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['core.KegbotSite']), keep_default=False)
+        # Adding field 'DrinkingSession.volume_ml'
+        db.add_column('core_drinkingsession', 'volume_ml', self.gf('django.db.models.fields.FloatField')(default=0), keep_default=False)
     
     
     def backwards(self, orm):
         
-        # Deleting model 'KegbotSite'
-        db.delete_table('core_kegbotsite')
+        # Deleting model 'KegSessionChunk'
+        db.delete_table('core_kegsessionchunk')
 
-        # Deleting field 'Config.site'
-        db.delete_column('core_config', 'site_id')
+        # Deleting model 'UserSessionChunk'
+        db.delete_table('core_usersessionchunk')
 
-        # Deleting field 'RelayLog.site'
-        db.delete_column('core_relaylog', 'site_id')
+        # Adding field 'DrinkingSession.volume'
+        db.add_column('core_drinkingsession', 'volume', self.gf('django.db.models.fields.FloatField')(default=0), keep_default=False)
 
-        # Deleting field 'AuthenticationToken.site'
-        db.delete_column('core_authenticationtoken', 'site_id')
-
-        # Deleting field 'KegTap.site'
-        db.delete_column('core_kegtap', 'site_id')
-
-        # Deleting field 'ThermoSensor.site'
-        db.delete_column('core_thermosensor', 'site_id')
-
-        # Deleting field 'ThermoSummaryLog.site'
-        db.delete_column('core_thermosummarylog', 'site_id')
-
-        # Deleting field 'DrinkingSessionUserPart.site'
-        db.delete_column('core_drinkingsessionuserpart', 'site_id')
-
-        # Deleting field 'Keg.site'
-        db.delete_column('core_keg', 'site_id')
-
-        # Deleting field 'Drink.site'
-        db.delete_column('core_drink', 'site_id')
-
-        # Deleting field 'KegStats.site'
-        db.delete_column('core_kegstats', 'site_id')
-
-        # Deleting field 'DrinkingSession.site'
-        db.delete_column('core_drinkingsession', 'site_id')
-
-        # Deleting field 'Thermolog.site'
-        db.delete_column('core_thermolog', 'site_id')
-
-        # Deleting field 'UserStats.site'
-        db.delete_column('core_userstats', 'site_id')
+        # Deleting field 'DrinkingSession.volume_ml'
+        db.delete_column('core_drinkingsession', 'volume_ml')
     
     
     models = {
@@ -198,7 +146,6 @@ class Migration(SchemaMigration):
             'expires': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'pin': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True', 'blank': 'True'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'token_value': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True', 'blank': 'True'})
         },
@@ -214,16 +161,16 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Config'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'value': ('django.db.models.fields.TextField', [], {})
         },
         'core.drink': {
             'Meta': {'object_name': 'Drink'},
+            'auth_token': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True', 'blank': 'True'}),
+            'duration': ('django.db.models.fields.PositiveIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'keg': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.Keg']", 'null': 'True', 'blank': 'True'}),
+            'keg': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'drinks'", 'null': 'True', 'to': "orm['core.Keg']"}),
             'session': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'drinks'", 'null': 'True', 'to': "orm['core.DrinkingSession']"}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {}),
             'status': ('django.db.models.fields.CharField', [], {'default': "'valid'", 'max_length': '128'}),
             'ticks': ('django.db.models.fields.PositiveIntegerField', [], {}),
@@ -234,18 +181,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'DrinkingSession'},
             'endtime': ('django.db.models.fields.DateTimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {}),
-            'volume': ('django.db.models.fields.FloatField', [], {'default': '0'})
-        },
-        'core.drinkingsessionuserpart': {
-            'Meta': {'unique_together': "(('session', 'user'),)", 'object_name': 'DrinkingSessionUserPart'},
-            'endtime': ('django.db.models.fields.DateTimeField', [], {}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'session': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'user_parts'", 'to': "orm['core.DrinkingSession']"}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
-            'starttime': ('django.db.models.fields.DateTimeField', [], {}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'session_parts'", 'to': "orm['auth.User']"}),
             'volume_ml': ('django.db.models.fields.FloatField', [], {'default': '0'})
         },
         'core.keg': {
@@ -255,17 +191,19 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'notes': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'origcost': ('django.db.models.fields.FloatField', [], {'default': '0', 'null': 'True', 'blank': 'True'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'size': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegSize']"}),
             'startdate': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['beerdb.BeerType']"})
         },
-        'core.kegbotsite': {
-            'Meta': {'object_name': 'KegbotSite'},
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
+        'core.kegsessionchunk': {
+            'Meta': {'unique_together': "(('session', 'keg'),)", 'object_name': 'KegSessionChunk'},
+            'endtime': ('django.db.models.fields.DateTimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
+            'keg': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'keg_session_chunks'", 'null': 'True', 'to': "orm['core.Keg']"}),
+            'session': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'keg_chunks'", 'to': "orm['core.DrinkingSession']"}),
+            'starttime': ('django.db.models.fields.DateTimeField', [], {}),
+            'volume_ml': ('django.db.models.fields.FloatField', [], {'default': '0'})
         },
         'core.kegsize': {
             'Meta': {'object_name': 'KegSize'},
@@ -279,7 +217,6 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'keg': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'stats'", 'unique': 'True', 'to': "orm['core.Keg']"}),
             'revision': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'stats': ('pykeg.core.jsonfield.JSONField', [], {'default': "'{}'"})
         },
         'core.kegtap': {
@@ -291,22 +228,29 @@ class Migration(SchemaMigration):
             'meter_name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'ml_per_tick': ('django.db.models.fields.FloatField', [], {'default': '0.45454545454545453'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'temperature_sensor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ThermoSensor']", 'null': 'True', 'blank': 'True'})
         },
         'core.relaylog': {
             'Meta': {'object_name': 'RelayLog'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'status': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'time': ('django.db.models.fields.DateTimeField', [], {})
+        },
+        'core.sessionchunk': {
+            'Meta': {'unique_together': "(('session', 'user', 'keg'),)", 'object_name': 'SessionChunk'},
+            'endtime': ('django.db.models.fields.DateTimeField', [], {}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'keg': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'session_chunks'", 'null': 'True', 'to': "orm['core.Keg']"}),
+            'session': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'chunks'", 'to': "orm['core.DrinkingSession']"}),
+            'starttime': ('django.db.models.fields.DateTimeField', [], {}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'session_chunks'", 'null': 'True', 'to': "orm['auth.User']"}),
+            'volume_ml': ('django.db.models.fields.FloatField', [], {'default': '0'})
         },
         'core.thermolog': {
             'Meta': {'object_name': 'Thermolog'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'sensor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ThermoSensor']"}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'temp': ('django.db.models.fields.FloatField', [], {}),
             'time': ('django.db.models.fields.DateTimeField', [], {})
         },
@@ -314,8 +258,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ThermoSensor'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'nice_name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'raw_name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"})
+            'raw_name': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         'core.thermosummarylog': {
             'Meta': {'object_name': 'ThermoSummaryLog'},
@@ -326,8 +269,7 @@ class Migration(SchemaMigration):
             'min_temp': ('django.db.models.fields.FloatField', [], {}),
             'num_readings': ('django.db.models.fields.PositiveIntegerField', [], {}),
             'period': ('django.db.models.fields.CharField', [], {'default': "'daily'", 'max_length': '64'}),
-            'sensor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ThermoSensor']"}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"})
+            'sensor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.ThermoSensor']"})
         },
         'core.userpicture': {
             'Meta': {'object_name': 'UserPicture'},
@@ -344,12 +286,20 @@ class Migration(SchemaMigration):
             'user': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['auth.User']", 'unique': 'True'}),
             'weight': ('django.db.models.fields.FloatField', [], {})
         },
+        'core.usersessionchunk': {
+            'Meta': {'unique_together': "(('session', 'user'),)", 'object_name': 'UserSessionChunk'},
+            'endtime': ('django.db.models.fields.DateTimeField', [], {}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'session': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'user_chunks'", 'to': "orm['core.DrinkingSession']"}),
+            'starttime': ('django.db.models.fields.DateTimeField', [], {}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'user_session_chunks'", 'null': 'True', 'to': "orm['auth.User']"}),
+            'volume_ml': ('django.db.models.fields.FloatField', [], {'default': '0'})
+        },
         'core.userstats': {
             'Meta': {'object_name': 'UserStats'},
             'date': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'revision': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['core.KegbotSite']"}),
             'stats': ('pykeg.core.jsonfield.JSONField', [], {'default': "'{}'"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'stats'", 'unique': 'True', 'to': "orm['auth.User']"})
         }

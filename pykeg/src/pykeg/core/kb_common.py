@@ -8,6 +8,9 @@ MIN_VOLUME_TO_RECORD = 10
 # Don't show small drinks
 MIN_VOLUME_TO_DISPLAY = 10
 
+# Minimum session size, in milliliters, to display
+MIN_SESSION_VOLUME_DISPLAY_ML = 177  # 6 ounces
+
 # Idle seconds allowed before a user gets booted for inactivity
 FLOW_IDLE_TIMEOUT = 30
 
@@ -22,6 +25,9 @@ GROUP_SESSION_TIME_MINUTES = 90
 # The maximum difference between consecutive meter readings that is considered
 # valid.
 MAX_METER_READING_DELTA = 2200*2
+
+# Minimum and maximum thermo sensor readings (degrees C).
+THERMO_SENSOR_RANGE = (-20.0, 80.0)
 
 # Address the kegnet server should bind to.
 KB_CORE_DEFAULT_ADDR = 'localhost:9805'

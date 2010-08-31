@@ -81,6 +81,8 @@ def BeerTypeToProto(beertype, full=True):
   ret.id = beertype.id
   ret.name = beertype.name
   ret.brewer_id = beertype.brewer.id
+  if full:
+    ret.brewer.MergeFrom(ToProto(beertype.brewer))
   ret.style_id = beertype.style.id
   if beertype.edition is not None:
     ret.edition = beertype.edition
@@ -125,6 +127,8 @@ def DrinkToProto(drink, full=True):
   ret.volume_ml = drink.volume_ml
   ret.session_id = str(drink.session.id)
   ret.pour_time = time_to_int(drink.endtime)
+  if drink.duration is not None:
+    ret.duration = drink.duration
   ret.is_valid = (drink.status == 'valid')
   if drink.keg:
     ret.keg_id = drink.keg.id
@@ -134,6 +138,8 @@ def DrinkToProto(drink, full=True):
     ret.user_id = drink.user.username
     if full:
       ret.user.MergeFrom(ToProto(drink.user))
+  if drink.auth_token:
+    ret.auth_token = drink.auth_token
   return ret
 
 @converts(models.Keg)
@@ -141,6 +147,8 @@ def KegToProto(keg, full=True):
   ret = models_pb2.Keg()
   ret.id = keg.id
   ret.type_id = keg.type.id
+  if full:
+    ret.type.MergeFrom(ToProto(keg.type))
   ret.size_id = keg.size.id
   rem = float(keg.remaining_volume())
   ret.volume_ml_remain = rem
@@ -171,8 +179,14 @@ def KegTapToProto(tap, full=True):
     ret.description = tap.description
   if tap.current_keg:
     ret.current_keg_id = tap.current_keg.id
+    if full:
+      ret.current_keg.MergeFrom(ToProto(tap.current_keg))
   if tap.temperature_sensor:
     ret.thermo_sensor_id = str(tap.temperature_sensor.id)
+    if full:
+      log = tap.temperature_sensor.LastLog()
+      if log:
+        ret.last_temperature.MergeFrom(ToProto(log))
   return ret
 
 @converts(models.DrinkingSession)
@@ -211,12 +225,13 @@ def UserToProto(user, full=True):
   ret.joined_time = time_to_int(user.date_joined)
   return ret
 
-@converts(models.DrinkingSessionUserPart)
-def UserSessionToProto(record, full=True):
-  ret = models_pb2.UserSession()
+@converts(models.SessionChunk)
+def SessionChunkToProto(record, full=True):
+  ret = models_pb2.SessionChunk()
   ret.id = str(record.id)
   ret.session_id = str(record.session.id)
   ret.username = record.user.username
+  ret.keg_id = record.keg.id
   ret.start_time = time_to_int(record.starttime)
   ret.end_time = time_to_int(record.endtime)
   ret.volume_ml = record.volume_ml

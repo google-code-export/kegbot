@@ -16,12 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Pykeg.  If not, see <http://www.gnu.org/licenses/>.
 
+from django.db import connection
 from django.core.management.base import CommandError
 from django.core.management.base import NoArgsCommand
 
 from pykeg.core import models
 from pykeg.core.management.commands.common import progbar
-
 
 class Command(NoArgsCommand):
   help = u'Regenerate all cached stats.'
@@ -30,28 +30,32 @@ class Command(NoArgsCommand):
   def handle(self, **options):
     drinks = models.Drink.objects.all()
 
-    models.KegStats.objects.all().delete()
-    kegs = models.Keg.objects.all()
-    count = kegs.count()
     pos = 0
-    for k in kegs:
+    count = drinks.count()
+    for d in drinks:
       pos += 1
-      progbar('recalc keg stats', pos, count)
-      last_drink = k.drinks.valid().order_by('-endtime')[0]
-      last_drink._UpdateKegStats()
+      progbar('clear drink sessions', pos, count)
+      d.session = None
+      d.save()
     print ''
 
-    models.UserStats.objects.all().delete()
-    users = models.User.objects.all()
-    count = users.count()
+    print 'deleting old sessions..',
+    try:
+      cursor = connection.cursor()
+      for table in ('core_drinkingsession', 'core_kegsessionchunk',
+        'core_usersessionchunk', 'core_sessionchunk'):
+        cursor.execute('TRUNCATE TABLE `%s`' % table)
+      print 'truncate successful'
+    except Exception, e:
+      models.DrinkingSession.objects.all().delete()
+      print 'orm delete successful'
+
     pos = 0
-    for user in users:
+    count = drinks.count()
+    for d in drinks.order_by('endtime'):
       pos += 1
-      progbar('recalc user stats', pos, count)
-      user_drinks = user.drinks.valid().order_by('-endtime')
-      if user_drinks:
-        last = user_drinks[0]
-        last._UpdateUserStats()
+      progbar('calc new sessions', pos, count)
+      sess = models.DrinkingSession.AssignSessionForDrink(d)
     print ''
 
     print 'done!'
