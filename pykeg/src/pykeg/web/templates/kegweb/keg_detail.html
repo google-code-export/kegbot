@@ -1,0 +1,217 @@
+{% extends "page-twocol.html" %}
+{% load kegweblib %}
+
+{% block title %}keg index{% endblock %}
+
+{% block kb-extrajs %}
+    <script type="text/javascript">
+      // Load the Visualization API and the tablepackage.
+      google.load('visualization', '1', {'packages':['table']});
+
+      // Set a callback to run when the Google Visualization API is loaded.
+      google.setOnLoadCallback(buildTable);
+
+      function buildTable() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('number', 'Drink');
+        data.addColumn('number', 'Ounces');
+        data.addColumn('number', 'Calories');
+        data.addColumn('string', 'User');
+        data.addColumn('string', 'When');
+        data.addColumn('number', 'PBAC');
+        data.addRows({{keg.drinks.valid.count}});
+
+        {% for drink in keg.drinks.valid %}
+        data.setCell({{forloop.counter0}}, 0, {{drink.id}},
+            '<a href="{% url drink drink.id %}">{{drink.id}}</a>');
+        data.setCell({{forloop.counter0}}, 1, {{drink.Volume.ConvertTo.Ounce}},
+          '{{drink.Volume.ConvertTo.Ounce|floatformat}}');
+        {% if drink.calories %}
+        data.setCell({{forloop.counter0}}, 2, {{drink.calories}},
+          '{{drink.calories|floatformat}}');
+        {% endif %}
+        data.setCell({{forloop.counter0}}, 3,
+        {% if drink.user %}
+        '<a href="{%url pykeg.web.kegweb.views.user_detail drink.user.username %}">{{ drink.user}}</a>');
+        {% else %}
+        'guest');
+        {% endif %}
+        data.setCell({{forloop.counter0}}, 4, '{% timeago drink.endtime %}');
+        data.setCell({{forloop.counter0}}, 5, {{drink.bac}}, '{{drink.bac|bac_format}}');
+        {% endfor %}
+        var table = new google.visualization.Table(document.getElementById('kb-keg-drinks-table'));
+        var formatter = new google.visualization.BarFormat({width: 50});
+        formatter.format(data, 1);
+        table.draw(data, {
+          showRowNumber: false,
+          allowHtml: true,
+          page: 'enable',
+          pageSize: 20});
+
+        $("#kb-keg-drinks-table").find("abbr.timeago").timeago();
+      }
+
+    </script>
+{% endblock kb-extrajs %}
+
+
+{% block col-1 %}
+
+<div class="kb-contentbox-head">
+   keg {{keg.id}} snapshot
+</div>
+
+<div class="kb-contentbox">
+  <table border="0" class="kb-statstable">
+    <tr>
+      <td colspan="2">
+        {{keg.type}}<br>
+        <div style="color:#888;">{{keg.size.name}}</div>
+      </td>
+    </tr>
+
+    <tr>
+      <td colspan="2">&nbsp;</td>
+    </tr>
+
+    <tr>
+      <td valign="top" align="right">
+        <b>Total Poured</b>
+      </td>
+      <td rowspan="2">
+        {% chart keg_volume keg 200 28 %}
+      </td>
+    </tr>
+
+    <tr>
+      <td valign="top" align="right">
+        {{keg.served_volume.ConvertTo.Pint|floatformat:0}} pints
+        {% if not keg.is_empty %}
+          ({{keg.remaining_volume.ConvertTo.Pint|floatformat:0}} remain)
+        {% endif %}
+      </td>
+    </tr>
+
+    {% if keg.tap %}
+    {% if keg.tap.temperature_sensor %}
+    <tr>
+      <td valign="top" align="right">
+        <b>Temperature</b>
+      </td>
+      <td rowspan="2">
+        {% chart sensor keg.tap.temperature_sensor.nice_name 200 28 %}
+      </td>
+    </tr>
+    <tr>
+      <td align="right">
+        {{ keg.tap.Temperature.TempC|floatformat:1}}&deg;C / 
+        {{ keg.tap.Temperature.TempF|floatformat:1}}&deg;F
+      </td>
+    </tr>
+    {% endif %}
+    {% endif %}
+
+    <tr>
+      <td align="right"><b>Percent Full</b></td>
+      <td>
+        {% if keg.is_empty %}
+          <i>empty</i>
+        {% else %}
+          {{ keg.percent_full|floatformat:2 }}% full
+        {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <td valign="top" align="right">
+        <b>Volume by Day</b>
+      </td>
+      <td>
+        {% chart keg_volume_by_day keg 200 64 %}
+      </td>
+    </tr>
+
+    <tr>
+      <td align="right"><b>Drink Count</b></td>
+      <td>
+        {{ keg.drinks.valid.count }} pours by {{ stats.AllDrinkersCount }}
+        unique drinkers.
+      </td>
+    </tr>
+
+    <tr>
+      <td align="right"><b>Sessions</b></td>
+      <td>
+        {{ keg.keg_session_chunks.all.count }} drinking sessions
+      </td>
+    </tr>
+
+    <tr>
+      <td align="right"><b>Keg Age</b></td>
+      <td>
+        {% ifequal keg.status "online" %}
+        this keg is <b>online</b>, and is {{ keg.keg_age.days }}
+        day{{keg.keg_age.days|pluralize}} old.
+        {% else %}
+        this keg is <b>offline</b>; it lasted {{ keg.keg_age.days }}
+        day{{keg.keg_age.days|pluralize}}.
+        {% endifequal %}
+      </td>
+    </tr>
+  </table>
+
+</div>
+
+{% endblock col-1 %}
+
+{% block col-2 %}
+<div class="kb-contentbox-head">
+  drinker breakdown
+</div>
+<div class="kb-contentbox">
+  {% chart users_by_volume keg 300 125 %}
+</div>
+{% endblock col-2 %}
+
+{% block extra-content %}
+<div class="kb-main-content">
+
+  <div class="kb-twocol-left">
+    <div class="kb-contentbox-head">
+       sessions
+    </div>
+    <div class="kb-contentbox">
+      {% for chunk in keg.keg_session_chunks.all %}
+        {% with chunk.session as session %}
+          {% include "kegweb/keg-session.html" %}
+        {% endwith %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="kb-twocol-right">
+    <div class="kb-contentbox-head">
+       top drinkers
+    </div>
+    <div class="kb-contentbox">
+      {% for volume,user in keg.TopDrinkers %}
+        {% include "kegweb/volume-user.html" %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="clear">&nbsp;</div>
+</div>
+
+<div class="kb-main-content">
+  <div class="kb-contentbox-head">
+     full drink history
+  </div>
+  <div class="kb-contentbox">
+    <p>
+       full drink history for keg {{ keg.id }} is shown below.
+    </p>
+    <table id="kb-keg-drinks-table" cellspacing=0 border=0></table>
+  </div>
+</div>
+{% endblock extra-content %}
