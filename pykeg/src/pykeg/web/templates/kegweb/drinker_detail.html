@@ -1,0 +1,119 @@
+{% extends "page-twocol.html" %}
+{% load kegweblib %}
+
+{% block title %}drinker details for {{ drinker.username }}{% endblock %}
+
+{% block kb-extrajs %}
+    <script type="text/javascript">
+      // Load the Visualization API and the tablepackage.
+      google.load('visualization', '1', {'packages':['table']});
+
+      // Set a callback to run when the Google Visualization API is loaded.
+      google.setOnLoadCallback(buildTable);
+
+      function buildTable() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Session');
+        data.addColumn('date', 'When');
+        data.addColumn('number', 'Pints');
+        data.addColumn('number', 'Drinkers');
+        data.addRows({{drinker.user_session_chunks.count}});
+
+        {% for chunk in drinker.user_session_chunks.all %}
+        {% with chunk.session as session %}
+        data.setCell({{forloop.counter0}}, 0, '{{session.GetTitle}}');
+        data.setCell({{forloop.counter0}}, 1,
+            {{session.starttime|datetime_js}});
+        data.setCell({{forloop.counter0}}, 2, {{chunk.Volume.ConvertTo.Pint}},
+          '{{chunk.Volume.ConvertTo.Pint|floatformat:1}}');
+        data.setCell({{forloop.counter0}}, 3, {{session.user_chunks.all.count}});
+        {% endwith %}
+        {% endfor %}
+        var table = new google.visualization.Table(document.getElementById('kb-user-sessions-table'));
+        var formatter = new google.visualization.BarFormat({width: 50});
+        formatter.format(data, 1);
+        table.draw(data, {
+          showRowNumber: false,
+          allowHtml: true,
+          page: 'enable',
+          pageSize: 50});
+      }
+
+    </script>
+{% endblock kb-extrajs %}
+
+{% block col-1 %}
+<div class="kb-contentbox-head">
+   {{ drinker.username }}: overview
+</div>
+<div class="kb-contentbox">
+  <div style="float:left;">
+    {% mugshot_box drinker 128 %}
+  </div>
+  <table border="0" class="kb-statstable">
+     <tr>
+       <td valign="top" align="right">
+         <b>Total Sessions</b>
+       </td>
+       <td>
+         {{ drinker.user_session_chunks.all.count }}
+       </td>
+     </tr>
+
+     <tr>
+        <td align="right" valign="top"><b>Total Drinks</b></td>
+        <td align="left">{{ drinker.drinks.valid.count }}</td>
+     </tr>
+
+     {% if drinker.drinks.valid.count %}
+     <tr>
+        <td align="right" valign="top"><b>Last Drink</b></td>
+        <td align="left">
+          {{ drinker.drinks.valid.0.endtime|date:"l, F j, Y" }}<br>
+          <i>({% timeago drinker.drinks.valid.0.endtime %})</i>
+        </td>
+     </tr>
+     {% endif %}
+
+     <tr>
+        <td align="right" valign="top"><b>Total Volume</b></td>
+        <td align="left">
+         {{ stats.total_volume|volume:"ounces"|floatformat:1}} ounces<br>
+         = {{ stats.total_volume|volume:"twelveounces"|floatformat:0}} 12-oz bottles<br>
+         = {{ stats.total_volume|volume:"pints"|floatformat:0}} pints<br>
+         = {{ stats.total_volume|volume:"gallons"|floatformat:1}} gallons<br>
+         = {{ stats.total_volume|volume:"halfbarrels"|floatformat:1}} kegs<br>
+        </td>
+     </tr>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block col-2 %}
+<div class="kb-contentbox-head">
+  stats
+</div>
+<div class="kb-contentbox">
+  <p>
+    <b>total pints, by day of week</b><br>
+    {% chart sessions_weekday drinker 350 100 %}
+  </p>
+
+  <p>
+    <b>all sessions, by pints per session</b><br>
+    {% chart sessions_volume drinker.user_session_chunks.all 350 100 %}
+  </p>
+</div>
+{% endblock %}
+
+{% block extra-content %}
+<div class="kb-main-content">
+  <div class="kb-contentbox-head">
+     all sessions
+  </div>
+  <div class="kb-contentbox">
+    <table border="0" class="kb-statstable" id="kb-user-sessions-table"></table>
+  </div>
+</div>
+{% endblock %}
