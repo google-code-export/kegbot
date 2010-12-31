@@ -1,0 +1,86 @@
+{% extends "page-twocol.html" %}
+{% load kegweblib %}
+
+{% block title %}main page{% endblock %}
+
+{% block kb-extrajs %}
+  <script>
+    var LAST_EVENT_ID = 0;
+    var INITIAL = true;
+    function addEventHtml(row, animate) {
+      var eid = row['id'];
+      if (eid > LAST_EVENT_ID) {
+        LAST_EVENT_ID = eid;
+      }
+
+      var newDivName = 'kb-event-' + row['id'];
+      var newDiv = '<div id="' + newDivName + '">';
+      newDiv += row['html'];
+      newDiv += '</div>';
+
+      $('#kb-recent-events').prepend(newDiv);
+
+      if (animate) {
+        $('#' + newDivName).css("display", "none");
+        $('#' + newDivName).css("background-color", "#ffc800");
+        $('#' + newDivName).show("slide",
+          { direction: 'up' },
+          1000,
+          function() {
+            $('#' + newDivName).animate({ backgroundColor: "#ffffff" }, 1500);
+          });
+      }
+
+      $("#kb-recent-events").find("abbr.timeago").timeago();
+    }
+
+    function getEvents() {
+      var animate = !INITIAL;
+      $.getJSON('/api/event/html/?since=' + LAST_EVENT_ID, function(data) {
+        if (data['result'] && data['result']['events']) {
+          var events = data['result']['events'];
+          for (var ev in events) {
+            addEventHtml(events[ev], animate);
+          }
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      // TODO(mikey): more intelligent timeout/backoff; idle sensitivity.
+      getEvents();
+      INITIAL = false;
+      setInterval(getEvents, 10000);
+    });
+
+  </script>
+{% endblock %}
+
+{% block header-text %}
+<div id="kb-main-header-text">
+  kegbot beer device
+</div>
+{% endblock %}
+
+{% comment %} Inhibit page title on main page. {% endcomment %}
+{% block header-margin %}{% endblock %}
+
+{% block col-1 %}
+<div class="kb-contentbox">
+  {% for tap in taps %}
+    {% if tap.current_keg %}
+      {% with tap.current_keg as keg %}
+        {% include "kegweb/keg-snapshot.html" %}
+      {% endwith %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock col-1 %}
+
+{% block col-2 %}
+<div class="kb-contentbox">
+  <h1>recent events</h1>
+  <div id="kb-recent-events"> </div>
+</div>
+
+{% endblock col-2 %}
