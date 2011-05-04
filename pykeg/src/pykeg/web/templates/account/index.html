@@ -1,0 +1,31 @@
+{% extends "account/base.html" %}
+
+{% block kb-account-main %}
+<div class="kb-contentbox-head">
+  hello, {{user.username}}
+</div>
+<div class="kb-contentbox">
+  <form action="" method="POST">{% csrf_token %}
+    <table class="kb-form">
+      {{ profile_form.as_table }}
+      <tr>
+        <td colspan="2">
+          <input type="submit" value="update profile" />
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>
+
+{% if user.is_staff or user.is_superuser %}
+<div class="kb-contentbox-head">
+  api key
+</div>
+<div class="kb-contentbox">
+  <p>
+    Use this API key to access the kegbot web service. Ssh! Keep it secret!
+  </p>
+  <pre>{{ user.get_profile.GetApiKey.Encode }}</pre>
+</div>
+{% endif %}
+{% endblock %}
